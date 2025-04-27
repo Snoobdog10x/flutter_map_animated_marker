@@ -55,7 +55,7 @@ class _AnimatedMarkerLayerState
     super.build(context);
     final map = MapCamera.of(context);
 
-    final pxPoint = map.project(LatLng(latitude, longitude));
+    final pxPoint = map.projectAtZoom(LatLng(latitude, longitude), map.zoom);
     final width = marker.width;
     final height = marker.height;
     final left = 0.5 * marker.width * (((marker.alignment)?.x ?? 0) + 1);
@@ -63,12 +63,17 @@ class _AnimatedMarkerLayerState
     final right = width - left;
     final bottom = height - top;
 
-    var sw = Point(pxPoint.x + width, pxPoint.y - height);
-    var ne = Point(pxPoint.x - width, pxPoint.y + height);
-    if (!map.pixelBounds.containsPartialBounds(Bounds(sw, ne))) {
+    // Check if the marker is within the visible bounds
+    final sw = Offset(pxPoint.dx + width, pxPoint.dy - height);
+    final ne = Offset(pxPoint.dx - width, pxPoint.dy + height);
+    if (!map.pixelBounds.contains(sw) && !map.pixelBounds.contains(ne)) {
       return const SizedBox();
     }
-    final pos = pxPoint.subtract(map.pixelOrigin);
+
+    // Calculate position relative to pixel origin
+    final pos = Point<double>(
+        pxPoint.dx - map.pixelOrigin.dx, pxPoint.dy - map.pixelOrigin.dy);
+
     final markerWidget = (marker.rotate ?? widget.options.rotate ?? false)
         // Counter rotated marker to the map rotation
         ? Transform.rotate(
